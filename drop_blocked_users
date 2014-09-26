@@ -1,0 +1,13 @@
+#!/bin/bash
+function kick {
+    echo "User-Name:=$1, Framed-IP-Address=$2" | radclient -x $3:1700 disconnect mikrotik
+}
+
+
+(
+mysql -B -N mikrotik <<EOF
+select distinct ra.username, ra.framedipaddress, ra.nasipaddress 
+from radacct ra left join radcheck rc using(username) 
+where ra.acctstoptime is null and rc.value='Reject' order by ra.username;
+EOF
+) | while read linha; do kick $linha; done

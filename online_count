@@ -1,0 +1,26 @@
+#!/bin/bash
+#
+# Author: Clayton A. Alves <clayton.aa@gmail.com>
+#
+RED=$(tput setaf 1)
+NORMAL=$(tput sgr0)
+if [ -z $1 ]
+then
+    naslist=$(mysql -BN -e "select distinct nasipaddress from radacct where acctstoptime is null" mikrotik)
+else
+    naslist=$1
+fi
+printf "%-15s %-15s %-15s \n" "NAS" "Online NAS" "Online radius"
+for ip in $naslist
+do
+    count1=$(snmpwalk -v1 -cpublic $ip ifDescr 2>&1 | grep "<pppoe-"| wc -l)
+    count2=$(mysql -BN -e "select count(*) from radacct where acctstoptime is null and nasipaddress='$ip'" mikrotik)
+
+    if [ $count2 -gt $count1 ]
+    then
+        printf "%-15s %-15s ${RED}%-15s${NORMAL} \n" $ip $count1 $count2
+    else
+        printf "%-15s %-15s %-15s \n" $ip $count1 $count2
+    fi
+done
+

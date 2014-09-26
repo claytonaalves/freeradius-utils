@@ -1,0 +1,19 @@
+#!/bin/bash
+# ###############################################################
+# This script remove stale sessions from radacct table
+# based on a interval time plus a grace time
+#
+# Author: Clayton A. Alves <clayton.aa@gmail.com>
+# 
+# ###############################################################
+interval=300
+grace=30
+mysql -A mikrotik <<EOF
+UPDATE radacct SET 
+    acctstoptime=ADDDATE(acctstarttime, INTERVAL acctsessiontime SECOND),
+    acctterminatecause='Stale-Session' 
+WHERE 
+    acctstoptime IS NULL AND
+    (UNIX_TIMESTAMP(NOW()) - (UNIX_TIMESTAMP(acctstarttime)+acctsessiontime)) > ($interval+$grace)
+EOF
+

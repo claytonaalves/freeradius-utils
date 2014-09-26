@@ -1,0 +1,14 @@
+#!/bin/bash
+(
+mysql -B mikrotik <<EoT
+SELECT 
+    username,
+    -- acctstarttime,
+    -- acctsessiontime,
+    sec_to_time(unix_timestamp(now()) - (unix_timestamp(acctstarttime)+acctsessiontime)) as LastUpdate
+FROM radacct 
+WHERE 
+    acctstoptime IS NULL
+ORDER BY LastUpdate;
+EoT
+) | column -t

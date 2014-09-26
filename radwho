@@ -1,0 +1,49 @@
+#!/usr/bin/env python
+
+# TODO: Listar tipo da conexao de cada cliente. Ex: pppoe, hotspot 
+# TODO: pegar as configuracoes de ~/.my.cnf
+
+import MySQLdb
+import ConfigParser
+import datetime
+
+CONFIG_FILE = '/etc/vigo.conf'
+config = ConfigParser.ConfigParser()
+config.read(CONFIG_FILE)
+
+connection = MySQLdb.connect(host   = config.get('mikrotik', 'hostname'), 
+                             user   = config.get('mikrotik', 'username'),
+                             passwd = config.get('mikrotik', 'password'), 
+                             db     = config.get('mikrotik', 'database'))
+
+q = connection.cursor()
+q.execute('''\
+SELECT
+   username, framedipaddress, callingstationid,
+   nasipaddress, acctstarttime, acctsessiontime,
+   sec_to_time(unix_timestamp(now()) - (unix_timestamp(acctstarttime)+acctsessiontime)) as lastupdate
+FROM radacct
+WHERE acctstoptime IS NULL
+ORDER BY nasipaddress, username;
+''')
+
+template = "%-30s %-15s %-17s %-15s %-19s %-16s %s"
+print template % ('Login', 'IP', 'MAC', 'Location', 'Start time', 'Session time', 'Last Interim Update')
+
+nas_list = {}
+for username, ipaddr, mac, nas, starttime, sessiontime, lastupdate in q:
+    if nas_list.has_key(nas):
+        nas_list[nas] += 1
+    else:
+        nas_list[nas] = 1
+
+    print template % ( username[:30], ipaddr, mac, nas, starttime, 
+                       str(datetime.timedelta(seconds=sessiontime)), lastupdate )
+
+print '\n', '-'*30
+template = '%-16s: %d'
+for nas, count in nas_list.iteritems():
+    print template % (nas, count)
+print template % ('Total', q.rowcount)
+print
+

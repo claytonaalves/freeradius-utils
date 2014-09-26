@@ -1,0 +1,12 @@
+#!/usr/bin/python
+import MySQLdb
+c = MySQLdb.connect('localhost','root','','mikrotik')
+c.autocommit(True)
+q = c.cursor()
+
+q.execute('select radacctid, username, acctuniqueid from radacct where acctstoptime is null group by username, acctuniqueid having count(*)>1')
+
+for radacctid, username, acctuniqueid in q.fetchall():
+    print username, acctuniqueid
+    q.execute('delete from radacct where username=%s and acctuniqueid=%s and radacctid<>%s and acctstoptime is null', (username, acctuniqueid, radacctid))
+

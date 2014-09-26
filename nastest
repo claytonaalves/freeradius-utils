@@ -1,0 +1,22 @@
+#!/bin/bash
+# ###############################################################
+# Lista os NAS em uso e testa se estão com conectividade via SNMP
+#
+# Autor: Clayton A. Alves <clayton.aa@gmail.com>
+# 
+# ###############################################################
+RED=$(tput setaf 1)
+NORMAL=$(tput sgr0)
+naslist=$(mysql -BN -e "select distinct nasipaddress from radacct where acctstoptime is null" mikrotik)
+for ip in $naslist
+do
+    printf "%-17s" $ip
+    nasname=$(snmpwalk -v1 -cpublic $ip sysName 2>&1)
+    if [ $? -ne 0 ]
+    then
+        echo "${RED}SNMP falhou! ${NORMAL}"
+    else
+        echo $nasname | sed 's/.\+STRING: //'
+    fi;
+done
+

@@ -1,0 +1,11 @@
+#!/bin/bash
+# ===========================================================
+# Copyright 2013, Vigo tecnologia
+#
+# Author: Clayton A. Alves
+# E-mail: clayton@vigo.com.br
+# ===========================================================
+echo "Message-Authenticator = 0x00, FreeRADIUS-Statistics-Type = 3" | \
+radclient localhost:18120 status adminsecret | \
+sed -n '/FreeRADIUS/{s/\tFreeRADIUS-Total-//;p}' | column -t
+
