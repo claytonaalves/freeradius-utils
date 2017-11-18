@@ -1,0 +1,39 @@
+#!/usr/bin/python
+import MySQLdb
+import subprocess as sp
+import re
+
+RE = re.compile("<pppoe-(.+)>$")
+
+c = MySQLdb.connect("localhost", "root", "", "mikrotik")
+c.autocommit(True)
+q = c.cursor()
+
+def snmp_walk(ip):
+    p = sp.Popen(['snmpwalk', '-v1', '-cpublic', ip, 'ifdescr'], stdout=sp.PIPE)
+    return p.communicate()[0]
+
+def online_mikrotik(ip):
+    online_list = snmp_walk(ip).splitlines()
+    lista = [m.group(1) for l in online_list for m in [RE.search(l)] if m]
+    return set(lista)
+
+def online_radius(ip):
+    q.execute('select radacctid, username from radacct where acctstoptime is null and nasipaddress=%s', ip)
+    lista = set([username for radacctid, username in q])
+    return lista
+
+def drop_exceeding(ip):
+    sobrando = list( online_radius(ip)-online_mikrotik(ip) )
+    for username in sobrando:
+        print username
+        #q.execute('delete from radacct where acctstoptime is null and username=%s', username)
+
+
+q.execute('select distinct nasipaddress from radacct where acctstoptime is null')
+ips = ['10.1.1.1']
+
+for ip in ips:
+    print '->', ip
+    drop_exceeding(ip)
+
